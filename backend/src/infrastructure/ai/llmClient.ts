@@ -18,6 +18,15 @@ type ModelResponse = {
   confidence?: unknown;
 };
 
+class LlmRequestError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string
+  ) {
+    super(message);
+  }
+}
+
 export class LlmClient {
   async analyze(agentType: AgentType, input: DecisionInput): Promise<Omit<AgentAnalysis, "decisionId">> {
     if (!config.openAiApiKey) {
@@ -28,7 +37,10 @@ export class LlmClient {
       const content = await this.callOpenAi(agentType, input);
       const parsed = this.parseModelResponse(content, agentType, input);
       return parsed;
-    } catch {
+    } catch (error) {
+      if (error instanceof LlmRequestError) {
+        return this.synthetic(agentType, input, error.code);
+      }
       return this.synthetic(agentType, input, "api_fallback");
     }
   }
@@ -67,7 +79,16 @@ export class LlmClient {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI request failed with status ${response.status}`);
+      const text = await response.text();
+      const detail = this.extractApiError(text);
+
+      if (response.status === 429) {
+        throw new LlmRequestError("quota_exceeded", `OpenAI quota exceeded: ${detail}`);
+      }
+      if (response.status === 401) {
+        throw new LlmRequestError("invalid_api_key", `OpenAI auth failed: ${detail}`);
+      }
+      throw new LlmRequestError("api_http_error", `OpenAI request failed (${response.status}): ${detail}`);
     }
 
     const payload = (await response.json()) as {
@@ -132,6 +153,15 @@ export class LlmClient {
   private clampNumber(value: unknown, fallback: number): number {
     if (typeof value !== "number" || Number.isNaN(value)) return fallback;
     return Math.max(0, Math.min(100, Math.round(value)));
+  }
+
+  private extractApiError(text: string): string {
+    try {
+      const parsed = JSON.parse(text) as { error?: { message?: string } };
+      return parsed.error?.message ?? text.slice(0, 200);
+    } catch {
+      return text.slice(0, 200);
+    }
   }
 
   private synthetic(agentType: AgentType, input: DecisionInput, reason: string): Omit<AgentAnalysis, "decisionId"> {
