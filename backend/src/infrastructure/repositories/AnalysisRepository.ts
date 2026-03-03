@@ -28,7 +28,7 @@ export class AnalysisRepository {
        FROM agent_analyses WHERE decision_id = $1 ORDER BY created_at ASC`,
       [decisionId]
     );
-    return result.rows.map((row) => ({
+    return result.rows.map((row: any) => ({
       decisionId: row.decision_id,
       agentType: row.agent_type,
       analysis: row.analysis,
@@ -91,7 +91,7 @@ export class AnalysisRepository {
       `SELECT zone_type, severity, rationale FROM critical_zones WHERE decision_id = $1 ORDER BY severity DESC`,
       [decisionId]
     );
-    return result.rows.map((row) => ({ zoneType: row.zone_type, severity: row.severity, rationale: row.rationale }));
+    return result.rows.map((row: any) => ({ zoneType: row.zone_type, severity: row.severity, rationale: row.rationale }));
   }
 
   async replaceScenarios(
@@ -112,7 +112,7 @@ export class AnalysisRepository {
       `SELECT scenario_type, assumptions, expected_outcome, risk_delta FROM scenarios WHERE decision_id = $1 ORDER BY created_at ASC`,
       [decisionId]
     );
-    return result.rows.map((row) => ({
+    return result.rows.map((row: any) => ({
       scenarioType: row.scenario_type,
       assumptions: row.assumptions,
       expectedOutcome: row.expected_outcome,
@@ -124,3 +124,4 @@ export class AnalysisRepository {
     await pool.query(`INSERT INTO exports (decision_id, format, file_url) VALUES ($1,$2,$3)`, [decisionId, format, fileUrl]);
   }
 }
+

@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt, { Secret, SignOptions } from "jsonwebtoken";
 import argon2 from "argon2";
 import { config } from "../../config";
 import { AuthError } from "../../shared/errors";
@@ -17,12 +17,14 @@ export async function verifyPassword(hash: string, password: string): Promise<bo
 }
 
 export function signAccessToken(payload: JwtPayload): string {
-  return jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
+  const secret: Secret = config.jwtSecret;
+  const options: SignOptions = { expiresIn: config.jwtExpiresIn as SignOptions["expiresIn"] };
+  return jwt.sign(payload, secret, options);
 }
 
 export function verifyToken(token: string): JwtPayload {
   try {
-    return jwt.verify(token, config.jwtSecret) as JwtPayload;
+    return jwt.verify(token, config.jwtSecret as Secret) as JwtPayload;
   } catch {
     throw new AuthError("Invalid token");
   }

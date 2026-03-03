@@ -18,7 +18,7 @@ export class DecisionRepository {
        FROM decisions WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId]
     );
-    return result.rows.map((row) => this.map(row));
+    return result.rows.map((row: any) => this.map(row));
   }
 
   async findById(id: string, userId: string): Promise<Decision | null> {
@@ -83,3 +83,4 @@ export class DecisionRepository {
     };
   }
 }
+

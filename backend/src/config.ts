@@ -18,4 +18,9 @@ export const config = {
 export function assertConfig(): void {
   if (!config.databaseUrl) throw new Error("DATABASE_URL is required");
   if (!config.jwtSecret) throw new Error("JWT_SECRET is required");
+
+  const weakSecret = config.jwtSecret === "change_me" || config.jwtSecret.length < 32;
+  if (config.nodeEnv === "production" && weakSecret) {
+    throw new Error("JWT_SECRET is too weak for production (min 32 chars, not default).");
+  }
 }
